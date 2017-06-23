@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1498162637 source:c:\users\nelso\documents\malwares\robertinho\robertinho v4\robertinho v4\main.cpp
+	<windows.h>
+	<iostream>
+	<fstream>
+	<string>
+
